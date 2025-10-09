@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # i686-elf-tools.sh
-# v1.3.4
+# v1.3.5
 
 # Define Global Variables
 
@@ -86,13 +86,13 @@ function main {
     
     if [[ $WINDOWS_ONLY == true ]]; then
         echoColor "Skipping compiling Linux as 'win' was specified in commandline args '$args'"
-    else    
+    else
         compileAll "linux"
     fi
     
     if [[ $LINUX_ONLY == true ]]; then
         echoColor "Skipping compiling Windows as 'linux' was specified in commandline args '$args'"
-    else    
+    else
         compileAll "windows"
     fi
         
@@ -115,6 +115,7 @@ function installPackages {
         libffi-dev
         libgdk-pixbuf2.0-dev
         libgmp-dev
+        libmpfr-dev
         libtool
         libltdl-dev
         libssl-dev
@@ -139,7 +140,7 @@ function installPackages {
     echoColor "Installing packages"
 
     # Fix correct python packages on modern Ubuntu and Ubuntu-based distros
-    if [[ $(lsb_release -a) =~ .*"Ubuntu".*$ || $(cat /etc/os-release) =~ .*(U|u)buntu.*$ || $(apt-cache search --names-only ^python$ | wc -m) -gt 0 ]]; then
+    if [[ $(apt-cache search --names-only ^python3$ | wc -m) -gt 0 ]]; then
         pkgList+=(python3 python-is-python3)
     else
         pkgList+=(python)
@@ -162,9 +163,9 @@ function installMXE {
         sudo -E git clone https://github.com/mxe/mxe.git
         cd mxe
         if [[ $PARALLEL == true ]]; then
-            sudo make -j4 gcc gmp
+            sudo make -j4 gcc gmp mpfr
         else
-            sudo make gcc gmp
+            sudo make gcc gmp mpfr
         fi
     else
        echoColor "    MXE is already installed. You'd better make sure that you've previously made MXE's gcc! (/opt/mxe/usr/bin/i686-w64-mingw32.static-gcc)"
@@ -186,7 +187,7 @@ function downloadSources {
     fi
     
     if [[ $BUILD_GCC == true || $ALL_PRODUCTS == true ]]; then
-        downloadAndExtract "gcc" $GCC_VERSION "http://ftp.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.gz"
+        downloadAndExtract "gcc" $GCC_VERSION "http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.gz"
         
         echoColor "        Downloading GCC prerequisites"
         
@@ -215,7 +216,7 @@ function downloadSources {
     if [[ $BUILD_GDB == true || $ALL_PRODUCTS == true ]]; then
         downloadAndExtract "gdb" $GDB_VERSION
     else
-       echoColor "    Skipping gdb as 'gdb' was ommitted from commandline args '$args'" 
+       echoColor "    Skipping gdb as 'gdb' was ommitted from commandline args '$args'"
     fi
 }
 
@@ -232,7 +233,7 @@ function downloadAndExtract {
         
         if [ -z $3 ]
         then
-            wget -q http://ftp.gnu.org/gnu/$name/$name-$version.tar.gz
+            wget -q http://ftpmirror.gnu.org/gnu/$name/$name-$version.tar.gz
         else
             wget -q $override
         fi
@@ -268,7 +269,7 @@ function downloadAndExtract {
             echoColor "        [windows] Extracting $name-$version.tar.gz"
             tar -xf ../$name-$version.tar.gz
         else
-            echoColor "        [windows] Folder $name-$version already exists"        
+            echoColor "        [windows] Folder $name-$version already exists"
         fi
         
         cd ..
@@ -290,7 +291,7 @@ function compileAll {
     cd ..
 }
 
-function compileBinutils {    
+function compileBinutils {
     if [[ $BUILD_BINUTILS == true || $ALL_PRODUCTS == true ]]; then
         echoColor "    Compiling binutils [$1]"
     
@@ -420,7 +421,7 @@ function compileGDB {
         mkdir -p build-gdb-$GDB_VERSION
         cd build-gdb-$GDB_VERSION
         
-        # Configure        
+        # Configure
         echoColor "        Configuring (gdb_configure.log)"
         ../gdb-$GDB_VERSION/configure $configureArgs >> gdb_configure.log
         
